@@ -31,8 +31,7 @@ function App() {
 
   const handleIDVettingComplete = () => {
       if (userRole === 'Employer') {
-          // *** FIX HERE ***
-          // Employers now go to post a job instead of skipping to payout
+          // Employers now go to post a job
           setPhase('JOB_POSTING'); 
       } else {
           setPhase('JOB_FEED'); // Route Employee to their new Job Feed
@@ -40,8 +39,7 @@ function App() {
   };
 
   const handleJobPosted = () => {
-      // After posting a job, an Employer will typically go to the Job Payout screen
-      // (simulating that the job was immediately filled and started)
+      // After posting a job, an Employer goes to the Payout/Monitoring screen
       setPhase('PAYOUT'); 
   };
 
@@ -58,10 +56,19 @@ function App() {
   };
   
   const handleSignOut = () => {
-    // Reset state and go back to the Sign Up screen
-    setCurrentPhone(null);
-    setUserRole(null);
-    setPhase('SIGNUP');
+      // *** FIX HERE ***
+      if (userRole === 'Employer' && phase === 'CONFIRMATION') {
+          // If the Employer just finished a job and clicked "Post Another Job," 
+          // we send them back to the job posting screen
+          setPhase('JOB_POSTING'); 
+          // We keep their identity (currentPhone, userRole) since they didn't really sign out
+          return; 
+      }
+
+      // Default: Reset state and go back to the Sign Up screen (for Employees or true sign out)
+      setCurrentPhone(null);
+      setUserRole(null);
+      setPhase('SIGNUP');
   };
 
 
@@ -95,11 +102,9 @@ function App() {
       </div>
     );
   } else if (phase === 'JOB_FEED' && userRole === 'Employee') {
-      // THE NEW EMPLOYEE JOB FEED SCREEN
       content = <JobFeed employeePhone={currentPhone} onSignOut={handleSignOut} />;
 
   } else if (phase === 'JOB_POSTING' && userRole === 'Employer') {
-      // The Job Posting Screen is now visible for Employers
       content = <PostJob employerPhone={currentPhone} onJobPosted={handleJobPosted} />;
 
   } else if (phase === 'PAYOUT' && userRole === 'Employer') {
@@ -115,6 +120,7 @@ function App() {
             <p className="header-text">
                 Thank you for using KaziSpot. Your worker has been paid **instantly** in full.
             </p>
+            {/* This button now calls handleSignOut, which we fixed to route to JOB_POSTING */}
             <button className="submit-button" onClick={handleSignOut}>
                 Post Another Job
             </button>
