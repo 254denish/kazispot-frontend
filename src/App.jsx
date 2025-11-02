@@ -1,145 +1,130 @@
 // kazispot/frontend/app/src/App.jsx
+import React, { useState, useEffect } from 'react';
+import './App.css';
 
-import React, { useState } from 'react';
+// Components
 import SignUp from './components/SignUp';
 import OTPValidation from './components/OTPValidation';
-import PostJob from './components/PostJob'; 
-import JobPayout from './components/JobPayout'; 
-import JobChat from './components/JobChat'; 
-import JobFeed from './components/JobFeed'; 
-import './App.css'; 
+import IDVetting from './components/IDVetting';
+import JobFeed from './components/JobFeed';
+import JobPayout from './components/JobPayout';
+import PostJob from './components/PostJob';
 
-const MOCK_PARTNER_NAME = 'Jane Doe'; 
-
+// --- MAIN APP COMPONENT ---
 function App() {
-  // Possible values: 'SIGNUP', 'OTP', 'ID_VETTING', 'JOB_POSTING', 'PAYOUT', 'CONFIRMATION', 'CHAT', 'JOB_FEED'
-  const [phase, setPhase] = useState('SIGNUP'); 
-  const [currentPhone, setCurrentPhone] = useState(null);
-  const [userRole, setUserRole] = useState(null); 
+  // Application State
+  const [currentScreen, setCurrentScreen] = useState('SIGN_UP');
+  const [phoneNumber, setPhoneNumber] = useState(null);
+  const [userRole, setUserRole] = useState(null); // 'Employer' or 'Employee'
+  const [isVetted, setIsVetted] = useState(false);
+  const [isKaziPro, setIsKaziPro] = useState(false); // Used for Job Feed filtering
 
-  // --- Handlers for navigating between screens ---
+  // Use localStorage to persist minimal state (userId and role) across sessions
+  useEffect(() => {
+    const savedRole = localStorage.getItem('userRole');
+    const savedVetted = localStorage.getItem('isVetted') === 'true';
 
-  const handleRegistrationSuccess = (phoneNumber, role) => {
-    setCurrentPhone(phoneNumber);
-    setUserRole(role); 
-    setPhase('OTP');
-  };
+    if (savedRole) {
+      setUserRole(savedRole);
+      setIsVetted(savedVetted);
 
-  const handleVerificationSuccess = (nextStep) => {
-    setPhase('ID_VETTING');
-  };
-
-  const handleIDVettingComplete = () => {
-      if (userRole === 'Employer') {
-          // Employers now go to post a job
-          setPhase('JOB_POSTING'); 
+      // Determine the initial screen based on saved state
+      if (savedVetted) {
+        if (savedRole === 'Employee') {
+          setCurrentScreen('JOB_FEED');
+        } else if (savedRole === 'Employer') {
+          // *** CRITICAL FIX HERE ***
+          // Employers who are already vetted should go straight to Job Posting
+          setCurrentScreen('JOB_POSTING'); 
+        }
       } else {
-          setPhase('JOB_FEED'); // Route Employee to their new Job Feed
+        // If role is saved but not vetted, go to vetting screen
+        setCurrentScreen('ID_VETTING');
       }
+    }
+  }, []);
+
+  // --- Handlers for Screen Transitions ---
+
+  const handleRegistrationSuccess = (phone, role) => {
+    setPhoneNumber(phone);
+    setUserRole(role);
+    localStorage.setItem('userRole', role);
+    setCurrentScreen('OTP_VALIDATION');
   };
 
-  const handleJobPosted = () => {
-      // After posting a job, an Employer goes to the Payout/Monitoring screen
-      setPhase('PAYOUT'); 
-  };
-
-  const handlePayoutConfirmation = () => {
-      setPhase('CONFIRMATION');
-  };
-
-  const handleOpenChat = () => {
-      setPhase('CHAT');
-  };
-
-  const handleExitChat = () => {
-      setPhase('PAYOUT'); 
+  const handleOTPValidationSuccess = () => {
+    setCurrentScreen('ID_VETTING');
   };
   
-  const handleSignOut = () => {
-      // *** FIX HERE ***
-      if (userRole === 'Employer' && phase === 'CONFIRMATION') {
-          // If the Employer just finished a job and clicked "Post Another Job," 
-          // we send them back to the job posting screen
-          setPhase('JOB_POSTING'); 
-          // We keep their identity (currentPhone, userRole) since they didn't really sign out
-          return; 
-      }
+  const handleVettingSuccess = (kaziProStatus) => {
+    setIsVetted(true);
+    setIsKaziPro(kaziProStatus); // Save the KaziPro status
+    localStorage.setItem('isVetted', 'true');
 
-      // Default: Reset state and go back to the Sign Up screen (for Employees or true sign out)
-      setCurrentPhone(null);
-      setUserRole(null);
-      setPhase('SIGNUP');
+    if (userRole === 'Employee') {
+      setCurrentScreen('JOB_FEED');
+    } else if (userRole === 'Employer') {
+      // Employer flow now goes to the Job Posting screen!
+      setCurrentScreen('JOB_POSTING'); 
+    }
+  };
+
+  const handlePostJobSuccess = () => {
+    // After an Employer successfully posts a job, they go to the Payout screen
+    // This simulates the job being completed and payment being required
+    setCurrentScreen('PAYOUT');
+  };
+
+  const handleSignOut = () => {
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('isVetted');
+    localStorage.removeItem('phoneNumber');
+    setPhoneNumber(null);
+    setUserRole(null);
+    setIsVetted(false);
+    setIsKaziPro(false);
+    // When an employer clicks "Post Another Job" on the payout screen, 
+    // we want them to go back to JOB_POSTING, not SIGN_UP
+    if (currentScreen === 'PAYOUT' && userRole === 'Employer') {
+      setCurrentScreen('JOB_POSTING');
+    } else {
+      setCurrentScreen('SIGN_UP');
+    }
   };
 
 
-  // --- Render the current phase ---
-  let content;
+  // --- Router Logic ---
 
-  if (phase === 'SIGNUP') {
-    content = <SignUp onRegistrationSuccess={handleRegistrationSuccess} />;
-  } else if (phase === 'OTP' && currentPhone) {
-    content = (
-      <OTPValidation 
-        phoneNumber={currentPhone} 
-        onVerificationSuccess={handleVerificationSuccess} 
-      />
-    );
-  } else if (phase === 'ID_VETTING') {
-    content = (
-      <div className="app-container">
-        <h1 className="logo-text" style={{color: '#005A9C'}}>Mandatory Vetting</h1>
-        <p className="header-text">
-          ✅ Phone verified. Next up: **National ID Vetting** (Trust & Safety First).
-          <br/><small style={{color: '#999'}}>Your ID has been submitted for Admin review.</small>
-        </p>
-        <button 
-            className="submit-button" 
-            style={{backgroundColor: '#28A745'}}
-            onClick={handleIDVettingComplete} 
-        >
-            Simulate ID Approval & Continue
-        </button>
-      </div>
-    );
-  } else if (phase === 'JOB_FEED' && userRole === 'Employee') {
-      content = <JobFeed employeePhone={currentPhone} onSignOut={handleSignOut} />;
+  const renderScreen = () => {
+    switch (currentScreen) {
+      case 'SIGN_UP':
+        return <SignUp onRegistrationSuccess={handleRegistrationSuccess} />;
 
-  } else if (phase === 'JOB_POSTING' && userRole === 'Employer') {
-      content = <PostJob employerPhone={currentPhone} onJobPosted={handleJobPosted} />;
+      case 'OTP_VALIDATION':
+        return <OTPValidation phoneNumber={phoneNumber} onVerificationSuccess={handleOTPValidationSuccess} />;
+      
+      case 'ID_VETTING':
+        return <IDVetting userRole={userRole} onVettingSuccess={handleVettingSuccess} />;
 
-  } else if (phase === 'PAYOUT' && userRole === 'Employer') {
-      content = <JobPayout onPayoutComplete={handlePayoutConfirmation} onOpenChat={handleOpenChat} />;
+      case 'JOB_FEED':
+        return <JobFeed isKaziPro={isKaziPro} onSignOut={handleSignOut} />;
 
-  } else if (phase === 'CHAT' && userRole === 'Employer') {
-      content = <JobChat partnerName={MOCK_PARTNER_NAME} onExitChat={handleExitChat} />;
+      case 'JOB_POSTING':
+        return <PostJob onPostJobSuccess={handlePostJobSuccess} onSignOut={handleSignOut} />;
 
-  } else if (phase === 'CONFIRMATION' && userRole === 'Employer') {
-      content = (
-        <div className="app-container">
-            <h1 className="logo-text" style={{color: '#28A745'}}>Payment Finalized!</h1>
-            <p className="header-text">
-                Thank you for using KaziSpot. Your worker has been paid **instantly** in full.
-            </p>
-            {/* This button now calls handleSignOut, which we fixed to route to JOB_POSTING */}
-            <button className="submit-button" onClick={handleSignOut}>
-                Post Another Job
-            </button>
-        </div>
-      );
-  } else {
-      content = (
-        <div className="app-container">
-            <p className="header-text">Error: Something went wrong. Restarting.</p>
-            <button className="submit-button" onClick={() => setPhase('SIGNUP')}>
-                Start Over
-            </button>
-        </div>
-      );
-  }
+      case 'PAYOUT':
+        return <JobPayout onPostAnotherJob={handleSignOut} onSignOut={handleSignOut} />; // Reuse handleSignOut to navigate back to job posting
+        
+      default:
+        return <SignUp onRegistrationSuccess={handleRegistrationSuccess} />;
+    }
+  };
 
+  // --- Main Render ---
   return (
     <div className="app-main-view">
-      {content}
+      {renderScreen()}
     </div>
   );
 }
