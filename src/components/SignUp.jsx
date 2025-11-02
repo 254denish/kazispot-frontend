@@ -1,82 +1,102 @@
-// kazispot/frontend/app/src/components/SignUp.jsx (COMPLETE REPLACEMENT)
-
+// kazispot/frontend/app/src/components/SignUp.jsx
 import React, { useState } from 'react';
-import '../App.css'; 
+import '../App.css';
+import { API_BASE_URL } from '../config'; // NEW IMPORT FROM CENTRAL CONFIG
 
-// The component now accepts 'onRegistrationSuccess' to pass back data
-const SignUp = ({ onRegistrationSuccess }) => { 
-  const [userType, setUserType] = useState('Employee'); 
+const SignUp = ({ onRegistrationSuccess }) => {
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [userRole, setUserRole] = useState(null);
   const [message, setMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
 
-  const handleSubmit = async (e) => {
+  const handleSendOTP = async (e) => {
     e.preventDefault();
-    setMessage('Sending verification code...');
+
+    if (!userRole) {
+      setMessage('❌ Please select your role (Employer or Employee) first.');
+      return;
+    }
+
+    if (!phoneNumber || phoneNumber.length < 10) {
+      setMessage('❌ Please enter a valid M-Pesa phone number.');
+      return;
+    }
+
+    setMessage(`Sending verification code to ${phoneNumber}...`);
+    setIsSending(true);
 
     try {
-      const response = await fetch('http://localhost:3000/api/auth/register', {
+      // API call using the LIVE URL
+      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ userType, phoneNumber }),
+        body: JSON.stringify({ phoneNumber, role: userRole }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        // --- CRITICAL CHANGE: Pass phone number AND userType back to the App component ---
-        onRegistrationSuccess(phoneNumber, userType); 
-        // ----------------------------------------------------------------------------------
+        setMessage(`✅ ${data.message}`);
+        // Delay to show the message before changing phase
+        setTimeout(() => {
+          onRegistrationSuccess(phoneNumber, userRole);
+        }, 1500);
       } else {
-        setMessage(`❌ Error: ${data.message || 'Failed to connect to KaziSpot server.'}`);
+        setMessage(`❌ Error: ${data.message || 'Registration failed.'}`);
       }
     } catch (error) {
-      setMessage('❌ Network Error. Ensure the backend server is running on port 3000.');
+      setMessage('❌ Network Error. Cannot connect to KaziSpot API.');
       console.error('Fetch error:', error);
+    } finally {
+      setIsSending(false);
     }
   };
 
   return (
     <div className="app-container">
-      <h1 className="logo-text">KaziSpot</h1>
-      
+      <h1 className="logo-text">Join KaziSpot!</h1>
       <p className="header-text">
         Please select your role and enter your M-Pesa phone number for instant payouts.
       </p>
 
-      {/* Role Selector */}
       <div className="role-selector">
-        <button 
-          onClick={() => setUserType('Employer')}
-          className={`role-button ${userType === 'Employer' ? 'selected' : ''}`}
+        <button
+          type="button"
+          className={`role-button ${userRole === 'Employer' ? 'role-active-employer' : ''}`}
+          onClick={() => setUserRole('Employer')}
         >
-          I Need Workers
+          I Need Workers (Employer)
         </button>
-        <button 
-          onClick={() => setUserType('Employee')}
-          className={`role-button ${userType === 'Employee' ? 'selected' : ''}`}
+        <button
+          type="button"
+          className={`role-button ${userRole === 'Employee' ? 'role-active-employee' : ''}`}
+          onClick={() => setUserRole('Employee')}
         >
-          I Need Work
+          I Need Work (Employee)
         </button>
       </div>
 
-      {/* Phone Verification Form */}
-      <form onSubmit={handleSubmit} className="auth-form">
+      <form onSubmit={handleSendOTP} style={{ width: '100%' }}>
         <input
           type="tel"
-          className="auth-input"
           value={phoneNumber}
           onChange={(e) => setPhoneNumber(e.target.value)}
-          placeholder="Enter M-Pesa Phone Number (e.g., 07XXXXXXXX)"
+          placeholder="Enter M-Pesa Phone Number (e.g., 07XXXXXXX)"
+          className="auth-input"
           required
         />
-        <button type="submit" className="submit-button">
-          Send Verification Code (OTP)
+        <button
+          type="submit"
+          className="submit-button"
+          style={{backgroundColor: isSending ? '#999' : '#28A745'}}
+          disabled={isSending || !userRole || phoneNumber.length < 9}
+        >
+          {isSending ? 'Sending...' : 'Send Verification Code (OTP)'}
         </button>
       </form>
-      
-      {/* Message Area */}
+
       {message && (
         <p className={`message-area ${message.startsWith('❌') ? 'message-error' : 'message-success'}`}>
           {message}

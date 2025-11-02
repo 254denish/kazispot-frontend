@@ -1,38 +1,40 @@
-// kazispot/frontend/app/src/components/JobPayout.jsx (COMPLETE REPLACEMENT)
-
+// kazispot/frontend/app/src/components/JobPayout.jsx
 import React, { useState } from 'react';
-import LiveMap from './LiveMap'; // NEW IMPORT
-import '../App.css'; 
+import '../App.css';
+import { API_BASE_URL } from '../config'; // NEW IMPORT FROM CENTRAL CONFIG
 
-const MOCK_JOB_ID = 'KS-J001';
-const MOCK_JOB_PAY = 500;
-const MOCK_WORKER_PHONE = '0701987654'; 
-const MOCK_WORKER_NAME = 'Jane Doe (KaziPro)'; 
-
-const JobPayout = ({ onPayoutComplete, onOpenChat }) => { 
-  const [rating, setRating] = useState(5); 
+const JobPayout = ({ onPayoutComplete, onOpenChat }) => {
   const [message, setMessage] = useState('');
   const [isPaying, setIsPaying] = useState(false);
-  const [isAlerting, setIsAlerting] = useState(false); 
 
   const handlePayout = async () => {
-    setMessage('Initiating Instant M-Pesa Payout...');
+    setMessage('Initiating Instant Payout via M-Pesa...');
     setIsPaying(true);
 
     try {
-      const response = await fetch('http://localhost:3000/api/payments/payout', {
+      // API call using the LIVE URL
+      const response = await fetch(`${API_BASE_URL}/api/payments/payout`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobID: MOCK_JOB_ID, employeePhone: MOCK_WORKER_PHONE, finalAmount: MOCK_JOB_PAY }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+            jobID: 'KSJ-001', 
+            amount: 1500, // Example job amount
+            workerID: 'EMP-456'
+        }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        setMessage(`✅ Success! ${data.message} ${MOCK_WORKER_NAME} was paid Ksh ${MOCK_JOB_PAY}.`);
-        onPayoutComplete(); 
+        setMessage(`✅ ${data.message}`);
+        // Delay to show the message before changing phase
+        setTimeout(() => {
+          onPayoutComplete();
+        }, 3000);
       } else {
-        setMessage(`❌ Error: ${data.message || 'Payout failed. Funds remain in Escrow.'}`);
+        setMessage(`❌ Error: ${data.message || 'Payout failed.'}`);
       }
     } catch (error) {
       setMessage('❌ Network Error. Check backend status.');
@@ -41,117 +43,74 @@ const JobPayout = ({ onPayoutComplete, onOpenChat }) => {
         setIsPaying(false);
     }
   };
-
-  const handlePanicAlert = async () => {
-      setIsAlerting(true);
-      setMessage('Sending Panic Alert to KaziSpot Support...');
-
+  
+  const handlePanic = async (userRole) => {
+      setMessage('Sending emergency alert...');
       try {
-        const response = await fetch('http://localhost:3000/api/safety/panic', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                jobID: MOCK_JOB_ID,
-                userRole: 'Employer',
-                location: 'Simulated GPS: Westlands/Kilimani border'
-            })
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            setMessage(`🚨 ${data.message}`);
-        } else {
-            setMessage(`❌ Alert failed: ${data.message}`);
-        }
+          // API call using the LIVE URL
+          const response = await fetch(`${API_BASE_URL}/api/safety/panic`, {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ 
+                  jobID: 'KSJ-001', 
+                  userRole: userRole, 
+                  location: 'Kilimani, Nairobi' 
+              }),
+          });
+          const data = await response.json();
+          if (response.ok) {
+              setMessage(`🚨 ${data.message}`);
+          } else {
+              setMessage(`❌ Error sending alert: ${data.message}`);
+          }
       } catch (error) {
-        setMessage('❌ Network Error. Alert failed to send.');
-        console.error('Panic fetch error:', error);
-      } finally {
-        setIsAlerting(false);
+          setMessage('❌ Network Error: Could not reach emergency services API.');
       }
   };
 
+
   return (
     <div className="app-container">
-      <h1 className="logo-text" style={{color: '#005A9C'}}>Job In Action!</h1>
+      <h1 className="logo-text" style={{color: '#B8860B'}}>Job Status: In Progress</h1>
       <p className="header-text">
-        Worker: **{MOCK_WORKER_NAME}** | Job ID: **{MOCK_JOB_ID}**
-        <br/>
-        Amount Due: **Ksh {MOCK_JOB_PAY}** (Held in Escrow)
+        Worker: **Jane Doe** (KaziPro Elite) is on the job. <br/>
+        Escrow Funded: **Ksh 1500**
       </p>
 
-      {/* NEW LIVE MAP COMPONENT */}
-      <LiveMap jobID={MOCK_JOB_ID} />
-
-      {/* CHAT AND PANIC BUTTONS CONTAINER */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', gap: '10px', width: '100%', marginBottom: '20px' }}>
         <button 
-            onClick={onOpenChat}
-            style={{
-                flex: 1,
-                background: 'none',
-                border: '1px solid #005A9C',
-                borderRadius: '8px',
-                color: '#005A9C',
-                padding: '10px',
-                fontSize: '14px',
-                cursor: 'pointer',
-                marginRight: '10px'
-            }}
+          className="secondary-button"
+          style={{flexGrow: 1, backgroundColor: '#E9E9E9', color: '#333'}}
+          onClick={onOpenChat}
         >
-          Open Secure Chat
+          💬 Chat with Worker
         </button>
-
         <button 
-            onClick={handlePanicAlert}
-            style={{
-                flex: 1,
-                backgroundColor: isAlerting ? '#999' : '#DC3545', 
-                border: 'none',
-                borderRadius: '8px',
-                color: 'white',
-                padding: '10px',
-                fontSize: '14px',
-                cursor: 'pointer'
-            }}
-            disabled={isAlerting}
+          className="secondary-button"
+          style={{flexGrow: 1, backgroundColor: '#FFCCCC', color: '#D9534F'}}
+          onClick={() => handlePanic('Employer')}
         >
-          {isAlerting ? 'Alert Sent...' : '🚨 Panic Button'}
+          🚨 Panic Button
         </button>
       </div>
-      
-      {/* Worker Rating */}
-      <div style={{ marginBottom: '25px', padding: '15px', border: '1px solid #EEE', borderRadius: '8px' }}>
-        <p style={{ margin: '0 0 10px 0', fontSize: '15px', fontWeight: 'bold' }}>
-            Rate your worker (Required for payout):
-        </p>
-        <select
-          value={rating}
-          onChange={(e) => setRating(parseInt(e.target.value))}
-          className="auth-input"
-          style={{ width: 'auto', display: 'inline-block', letterSpacing: 'normal' }}
-        >
-          <option value={5}>⭐⭐⭐⭐⭐ (Excellent)</option>
-          <option value={4}>⭐⭐⭐⭐ (Very Good)</option>
-          <option value={3}>⭐⭐⭐ (Average)</option>
-          <option value={2}>⭐⭐ (Poor)</option>
-          <option value={1}>⭐ (Unacceptable)</option>
-        </select>
-      </div>
 
-      {/* Payout Button */}
+      <p style={{ margin: '15px 0 10px 0', fontSize: '14px', color: '#666' }}>
+        When the work is 100% complete, click the button below to release the funds.
+      </p>
+
       <button 
-        onClick={handlePayout}
         className="submit-button"
-        style={{backgroundColor: isPaying ? '#999' : '#28A745'}} 
+        style={{backgroundColor: isPaying ? '#999' : '#28A745'}}
+        onClick={handlePayout}
         disabled={isPaying}
       >
-        {isPaying ? 'Paying Instantly...' : `Mark Complete & INSTANT PAYOUT Ksh ${MOCK_JOB_PAY}`}
+        {isPaying ? 'Processing Instant Payout...' : '✅ Confirm Completion & Instant Payout'}
       </button>
-      
+
       {message && (
-        <p className={`message-area ${message.startsWith('❌') || message.startsWith('🚨') ? 'message-error' : 'message-success'}`}>
+        <p className={`message-area ${message.startsWith('❌') ? 'message-error' : 'message-success'}`}>
           {message}
         </p>
       )}
