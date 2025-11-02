@@ -1,4 +1,4 @@
-// kazispot/frontend/app/src/App.jsx (COMPLETE REPLACEMENT)
+// kazispot/frontend/app/src/App.jsx
 
 import React, { useState } from 'react';
 import SignUp from './components/SignUp';
@@ -6,7 +6,7 @@ import OTPValidation from './components/OTPValidation';
 import PostJob from './components/PostJob'; 
 import JobPayout from './components/JobPayout'; 
 import JobChat from './components/JobChat'; 
-import JobFeed from './components/JobFeed'; // NEW IMPORT
+import JobFeed from './components/JobFeed'; 
 import './App.css'; 
 
 const MOCK_PARTNER_NAME = 'Jane Doe'; 
@@ -31,13 +31,17 @@ function App() {
 
   const handleIDVettingComplete = () => {
       if (userRole === 'Employer') {
-          setPhase('PAYOUT'); // Demo shortcut: Employer skips posting to simulate paying a completed job
+          // *** FIX HERE ***
+          // Employers now go to post a job instead of skipping to payout
+          setPhase('JOB_POSTING'); 
       } else {
           setPhase('JOB_FEED'); // Route Employee to their new Job Feed
       }
   };
 
   const handleJobPosted = () => {
+      // After posting a job, an Employer will typically go to the Job Payout screen
+      // (simulating that the job was immediately filled and started)
       setPhase('PAYOUT'); 
   };
 
@@ -95,6 +99,7 @@ function App() {
       content = <JobFeed employeePhone={currentPhone} onSignOut={handleSignOut} />;
 
   } else if (phase === 'JOB_POSTING' && userRole === 'Employer') {
+      // The Job Posting Screen is now visible for Employers
       content = <PostJob employerPhone={currentPhone} onJobPosted={handleJobPosted} />;
 
   } else if (phase === 'PAYOUT' && userRole === 'Employer') {
