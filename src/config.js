@@ -1,5 +1,5 @@
 // kazispot/frontend/app/src/config.js
 
-// IMPORTANT: This URL MUST match the URL of your deployed KaziSpot API on Render.
-// This is the URL confirmed from your Render logs.
-export const API_BASE_URL = 'https://kazispot-api-onrender.com'; 
+// CRITICAL FIX: Hardcoding the live Render URL to bypass potential 
+// environment variable injection issues during Vercel build process.
+export const API_BASE_URL = 'https://kazispot-api.onrender.com';

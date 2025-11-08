@@ -1,38 +1,33 @@
 // kazispot/frontend/app/src/components/JobPayout.jsx
+
 import React, { useState } from 'react';
 import '../App.css';
-import { API_BASE_URL } from '../config'; // NEW IMPORT FROM CENTRAL CONFIG
+import { API_BASE_URL } from '../config';
 
 const JobPayout = ({ onPayoutComplete, onOpenChat }) => {
   const [message, setMessage] = useState('');
   const [isPaying, setIsPaying] = useState(false);
+
+  const jobID = 'KSJ-001';
+  const amount = 1500;
+  const workerID = 'EMP-456';
 
   const handlePayout = async () => {
     setMessage('Initiating Instant Payout via M-Pesa...');
     setIsPaying(true);
 
     try {
-      // API call using the LIVE URL
       const response = await fetch(`${API_BASE_URL}/api/payments/payout`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-            jobID: 'KSJ-001', 
-            amount: 1500, // Example job amount
-            workerID: 'EMP-456'
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobID, amount, workerID }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
         setMessage(`✅ ${data.message}`);
-        // Delay to show the message before changing phase
-        setTimeout(() => {
-          onPayoutComplete();
-        }, 3000);
+        setTimeout(() => onPayoutComplete(), 3000);
       } else {
         setMessage(`❌ Error: ${data.message || 'Payout failed.'}`);
       }
@@ -40,69 +35,60 @@ const JobPayout = ({ onPayoutComplete, onOpenChat }) => {
       setMessage('❌ Network Error. Check backend status.');
       console.error('Fetch error:', error);
     } finally {
-        setIsPaying(false);
+      setIsPaying(false);
     }
   };
-  
-  const handlePanic = async (userRole) => {
-      setMessage('Sending emergency alert...');
-      try {
-          // API call using the LIVE URL
-          const response = await fetch(`${API_BASE_URL}/api/safety/panic`, {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ 
-                  jobID: 'KSJ-001', 
-                  userRole: userRole, 
-                  location: 'Kilimani, Nairobi' 
-              }),
-          });
-          const data = await response.json();
-          if (response.ok) {
-              setMessage(`🚨 ${data.message}`);
-          } else {
-              setMessage(`❌ Error sending alert: ${data.message}`);
-          }
-      } catch (error) {
-          setMessage('❌ Network Error: Could not reach emergency services API.');
-      }
-  };
 
+  const handlePanic = async () => {
+    setMessage('Sending emergency alert...');
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/safety/panic`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobID,
+          userRole: 'Employer',
+          location: 'Kilimani, Nairobi',
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMessage(`🚨 ${data.message}`);
+      } else {
+        setMessage(`❌ Error sending alert: ${data.message}`);
+      }
+    } catch (error) {
+      setMessage('❌ Network Error: Could not reach emergency services API.');
+      console.error('Panic error:', error);
+    }
+  };
 
   return (
     <div className="app-container">
-      <h1 className="logo-text" style={{color: '#B8860B'}}>Job Status: In Progress</h1>
+      <h1 className="logo-text" style={{ color: '#B8860B' }}>Job Status: In Progress</h1>
       <p className="header-text">
-        Worker: **Jane Doe** (KaziPro Elite) is on the job. <br/>
-        Escrow Funded: **Ksh 1500**
+        Worker: <strong>Jane Doe</strong> (KaziPro Elite) is on the job.<br />
+        Escrow Funded: <strong>Ksh {amount}</strong>
       </p>
 
-      <div style={{ display: 'flex', gap: '10px', width: '100%', marginBottom: '20px' }}>
-        <button 
-          className="secondary-button"
-          style={{flexGrow: 1, backgroundColor: '#E9E9E9', color: '#333'}}
-          onClick={onOpenChat}
-        >
+      <div className="action-row">
+        <button className="secondary-button" onClick={onOpenChat}>
           💬 Chat with Worker
         </button>
-        <button 
-          className="secondary-button"
-          style={{flexGrow: 1, backgroundColor: '#FFCCCC', color: '#D9534F'}}
-          onClick={() => handlePanic('Employer')}
-        >
+        <button className="secondary-button panic" onClick={handlePanic}>
           🚨 Panic Button
         </button>
       </div>
 
-      <p style={{ margin: '15px 0 10px 0', fontSize: '14px', color: '#666' }}>
+      <p className="instruction-text">
         When the work is 100% complete, click the button below to release the funds.
       </p>
 
-      <button 
+      <button
         className="submit-button"
-        style={{backgroundColor: isPaying ? '#999' : '#28A745'}}
+        style={{ backgroundColor: isPaying ? '#999' : '#28A745' }}
         onClick={handlePayout}
         disabled={isPaying}
       >

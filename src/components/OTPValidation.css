@@ -1,0 +1,80 @@
+.otp-validation-container {
+  max-width: 400px;
+  margin: auto;
+  padding: 40px;
+  text-align: center;
+  background-color: #FAFAFA;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  font-family: 'Segoe UI', sans-serif;
+}
+
+input {
+  padding: 12px;
+  font-size: 16px;
+  width: 100%;
+  margin-bottom: 16px;
+  border: 1px solid #CED4DA;
+  border-radius: 6px;
+  transition: border-color 0.3s ease;
+}
+
+input:focus {
+  border-color: #007BFF;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+  outline: none;
+}
+
+button {
+  padding: 10px 20px;
+  font-size: 16px;
+  margin: 6px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+button.verify {
+  background-color: #007BFF;
+  color: #FFFFFF;
+  border: none;
+}
+
+button.verify:hover {
+  background-color: #0056b3;
+}
+
+button.secondary {
+  background-color: #F0F4F8;
+  color: #333333;
+  border: 1px solid #D0D7DE;
+}
+
+button.secondary:hover {
+  background-color: #E5EAF0;
+}
+
+button:disabled {
+  background-color: #AAA;
+  cursor: not-allowed;
+}
+
+.status-message {
+  margin-top: 12px;
+  font-size: 14px;
+  color: #28A745;
+}
+
+.error-message {
+  margin-top: 12px;
+  font-size: 14px;
+  color: #DC3545;
+}
+
+.otp-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 24px;
+}

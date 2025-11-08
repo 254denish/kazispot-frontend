@@ -1,85 +1,68 @@
-// kazispot/frontend/app/src/components/OTPValidation.jsx
-import React, { useState } from 'react'; // CORRECTED SYNTAX: using 'from'
-import '../App.css';
-import { API_BASE_URL } from '../config'; 
+import React, { useState } from 'react';
+import axios from 'axios';
+import './OTPValidation.css';
 
-const OTPValidation = ({ phoneNumber, onVerificationSuccess }) => {
-  const [otpCode, setOtpCode] = useState('');
-  const [message, setMessage] = useState('');
-  const [isVerifying, setIsVerifying] = useState(false);
+function OTPValidation({ phoneNumber, onVerificationSuccess, onBack, onRestart }) {
+  const [otp, setOtp] = useState('');
+  const [status, setStatus] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleVerifyOTP = async (e) => {
-    e.preventDefault();
-
-    if (otpCode !== '1234') {
-        setMessage('Simulating server validation. Use code 1234.');
-    }
-
-    setMessage('Verifying code...');
-    setIsVerifying(true);
+  const handleVerify = async () => {
+    setLoading(true);
+    setStatus(null);
 
     try {
-      // API call using the LIVE URL
-      const response = await fetch(`${API_BASE_URL}/api/auth/verify-otp`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ phoneNumber, otpCode }),
+      const response = await axios.post('http://localhost:5000/api/verify-otp', {
+        phone: phoneNumber,
+        code: otp,
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        setMessage(`✅ ${data.message}`);
-        setTimeout(() => {
-            onVerificationSuccess(data.nextStep);
-        }, 1500);
+      if (response.data.success) {
+        setStatus('OTP verified successfully!');
+        onVerificationSuccess();
       } else {
-        setMessage(`❌ Error: ${data.message || 'OTP verification failed.'}`);
+        setStatus(response.data.message || 'Verification failed.');
       }
-    } catch (error) {
-      setMessage('❌ Network Error. Cannot connect to KaziSpot API.');
-      console.error('Fetch error:', error);
+    } catch (err) {
+      setStatus('Server error. Please try again.');
     } finally {
-      setIsVerifying(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="app-container">
-      <h1 className="logo-text" style={{color: '#005A9C'}}>Verify Phone</h1>
-      <p className="header-text">
-        Code sent to **{phoneNumber}**. Enter the code below. (Use **1234** in this demo)
-      </p>
+    <div className="otp-validation-container">
+      <h2>Enter OTP</h2>
+      <p>We sent a code to <strong>{phoneNumber}</strong></p>
 
-      <form onSubmit={handleVerifyOTP} style={{ width: '100%' }}>
-        <input
-          type="tel"
-          value={otpCode}
-          onChange={(e) => setOtpCode(e.target.value)}
-          placeholder="Enter 4-digit code (e.g., 1234)"
-          className="auth-input"
-          maxLength="4"
-          required
-        />
-        <button
-          type="submit"
-          className="submit-button"
-          style={{backgroundColor: isVerifying ? '#999' : '#005A9C'}}
-          disabled={isVerifying || otpCode.length !== 4}
-        >
-          {isVerifying ? 'Verifying...' : 'Validate Code'}
-        </button>
-      </form>
+      <input
+        type="text"
+        value={otp}
+        onChange={(e) => setOtp(e.target.value)}
+        placeholder="Enter 6-digit OTP"
+        maxLength={6}
+      />
 
-      {message && (
-        <p className={`message-area ${message.startsWith('❌') ? 'message-error' : 'message-success'}`}>
-          {message}
+      <button
+        className="verify"
+        onClick={handleVerify}
+        disabled={loading || otp.length !== 6}
+      >
+        {loading ? 'Verifying...' : 'Verify OTP'}
+      </button>
+
+      {status && (
+        <p className={status.includes('successfully') ? 'status-message' : 'error-message'}>
+          {status}
         </p>
       )}
+
+      <div className="otp-actions">
+        <button className="secondary" onClick={onBack}>Back</button>
+        <button className="secondary" onClick={onRestart}>Restart</button>
+      </div>
     </div>
   );
-};
+}
 
 export default OTPValidation;
